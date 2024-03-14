@@ -12,6 +12,14 @@ This repository contains the deployment code, scripts, and configuration files f
 - **OpenID Connect IAM Role**: IAM roles utilize OpenID Connect for authentication, providing a secure and standardized way to delegate access to AWS resources.
 - **Security Group**: The CDK construct creates a security group that references the security group created in the CDK code, ensuring that only traffic on ports 80 and 443 is allowed.
 
+## Deployment Workflow
+The deployment workflow is triggered manually or through a webhook. The workflow includes the following steps:
+1. **Checkout Repository**: The repository is checked out to the GitHub Actions runner.
+2. **Configure AWS Credentials**: AWS credentials are configured using an IAM role with OpenID Connect authentication, which is assumed by GitHub Actions. The IAM role allows secure access to AWS services without storing access keys or secrets directly in GitHub Actions.
+3. **Login to Amazon ECR**: Authentication is performed to login to Amazon ECR.
+4. **Build, Tag, and Push Image to Amazon ECR**: The Docker image is built using the Dockerfile and pushed to Amazon ECR.
+5. **Force New Deployment to ECS**: After the Docker image is successfully pushed to ECR, this step forces a new deployment to the ECS service. It ensures that the latest version of the Docker image is deployed to the ECS cluster, facilitating seamless updates to the web server.
+
 ## Architecture Overview
 ![Architecture Diagram](./webapp.png)
 *The architecture diagram illustrates how the different components interact with each other, including ECR, ECS, ALB, private and public subnets, availability zones, and OpenID Connect authentication.*
