@@ -14,7 +14,7 @@ This repository contains the deployment code, scripts, and configuration files f
 
 ## Architecture Overview
 ![Architecture Diagram](./webapp.png)
-*The architecture diagram illustrates how the different components interact with each other, including ECR, ECS, ALB, and public IP accessibility.*
+*The architecture diagram illustrates how the different components interact with each other, including ECR, ECS, ALB, public IP accessibility, private and public subnets, availability zones and OpenID Connect authentication.*
 
 ## Usage
 1. Clone this repository.
