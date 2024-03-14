@@ -1,12 +1,13 @@
-name: Build and Push Docker Image
+name: Build and Deploy Web Server
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    permissions: write-all
 
     steps:
       - name: Checkout Repository
@@ -29,3 +30,7 @@ jobs:
         run: |
             docker build -f Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
             docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Force new deployment to ECS
+        run: |
+            aws ecs update-service --cluster NovakPlaygroundCluster --service NovakPlaygroundService --force-new-deployment
