@@ -6,8 +6,13 @@ import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as route53targets from 'aws-cdk-lib/aws-route53-targets';
 
-interface NovakPlaygroundProps extends StackProps {}
+interface NovakPlaygroundProps extends StackProps {
+    domainName: string;
+    certificateArn: string;
+}
 
 export class NovakPlayground extends Stack {
     constructor(scope: Construct, id: string, props: NovakPlaygroundProps) {
@@ -30,6 +35,14 @@ export class NovakPlayground extends Stack {
                 }
             ]
         });
+
+        // Create Security Group for ALB
+        const albSecurityGroup = new ec2.SecurityGroup(this, 'ALBSecurityGroup', {
+            vpc,
+            description: 'Security group for ALB',
+        });
+        albSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80), 'Allow HTTP traffic');
+        albSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), 'Allow HTTPS traffic');
 
         // Create the ECR repository
         const repository = new ecr.Repository(this, 'Repository', {
@@ -57,16 +70,15 @@ export class NovakPlayground extends Stack {
             }),
         );
 
-        // Create a role for the GitHub Actions to assume
-        const novakPlaygroundRole = new iam.Role(this, `PlaygroundRole`, {
-            roleName: `novak-playground-github-actions`,
-            assumedBy: new iam.ServicePrincipal('codebuild.amazonaws.com'),
+        // Create a role for GitHub Actions to assume
+        const githubActionsRole = new iam.Role(this, `GitHubActionsRole`, {
+            roleName: `github-actions-role`,
+            assumedBy: new iam.ServicePrincipal('github.com'),
         });
 
-        // Add the required permissions to the role
-        novakPlaygroundRole.addToPolicy(
+        // Attach policy to GitHub Actions role
+        githubActionsRole.addToPolicy(
             new iam.PolicyStatement({
-                resources: ["*"],
                 actions: [
                     "ecr:BatchCheckLayerAvailability",
                     "ecr:InitiateLayerUpload",
@@ -76,12 +88,7 @@ export class NovakPlayground extends Stack {
                     "ecr:BatchGetImage",
                     "ecr:GetDownloadUrlForLayer",
                 ],
-            })
-        );
-        novakPlaygroundRole.addToPolicy(
-            new iam.PolicyStatement({
-                resources: [repository.repositoryArn],
-                actions: ["ecr:GetAuthorizationToken"],
+                resources: ["*"],
             })
         );
 
@@ -125,11 +132,15 @@ export class NovakPlayground extends Stack {
                 availabilityZones: ["eu-west-1a", "eu-west-1b", "eu-west-1c"],
             },
             internetFacing: true,
+            securityGroup: albSecurityGroup,
         });
 
-        // Add a listener to the ALB
-        const listener = alb.addListener("Listener", {
-            port: 80,
+        // Add HTTPS listener to ALB
+        const listener = alb.addListener('Listener', {
+            port: 443,
+            open: true,
+            protocol: elbv2.ApplicationProtocol.HTTPS,
+            certificates: [elbv2.ListenerCertificate.fromCertificateManager(props.certificateArn)],
         });
 
         // Add a target group to the listener
@@ -139,6 +150,14 @@ export class NovakPlayground extends Stack {
                 containerName: "NovakPlaygroundContainer",
                 containerPort: 80,
             })],
+        });
+
+        // Route 53 Alias for ALB
+        const zone = route53.HostedZone.fromLookup(this, 'MyHostedZone', { domainName: props.domainName });
+        new route53.ARecord(this, 'AliasRecord', {
+            zone: zone,
+            target: route53.RecordTarget.fromAlias(new route53targets.LoadBalancerTarget(alb)),
+            recordName: props.domainName,
         });
     }
 }
