@@ -7,14 +7,13 @@ This repository contains the deployment code, scripts, and configuration files f
 - **Amazon Elastic Container Registry (ECR)**: Docker images are stored and managed in ECR to facilitate containerization.
 - **Amazon ECS (Elastic Container Service)**: The web server is deployed as a Docker container using ECS, ensuring scalability and efficient resource utilization.
 - **Application Load Balancer (ALB)**: Traffic is routed to the service via an ALB, enabling load balancing and high availability.
-- **Public IP Accessibility**: The web server is accessible via a public IP address, allowing users to interact with the application over the internet.
 - **GitHub Actions Deployment**: The deployment process is automated using GitHub Actions, ensuring consistent and reliable deployments.
 - **Security Measures**: Sensitive data, including credentials and configuration settings, are stored securely in GitHub Actions secrets to mitigate potential security risks.
 - **OpenID Connect IAM Role**: IAM roles utilize OpenID Connect for authentication, providing a secure and standardized way to delegate access to AWS resources.
 
 ## Architecture Overview
 ![Architecture Diagram](./webapp.png)
-*The architecture diagram illustrates how the different components interact with each other, including ECR, ECS, ALB, public IP accessibility, private and public subnets, availability zones and OpenID Connect authentication.*
+*The architecture diagram illustrates how the different components interact with each other, including ECR, ECS, ALB, private and public subnets, availability zones and OpenID Connect authentication.*
 
 ## Usage
 1. Clone this repository.
