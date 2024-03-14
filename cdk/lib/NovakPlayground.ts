@@ -44,6 +44,12 @@ export class NovakPlayground extends Stack {
         albSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80), 'Allow HTTP traffic');
         albSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), 'Allow HTTPS traffic');
 
+        // Create a role for GitHub Actions to assume
+        const githubActionsRole = new iam.Role(this, `GitHubActionsRole`, {
+            roleName: `github-actions-role`,
+            assumedBy: new iam.ServicePrincipal('github.com'),
+        });
+
         // Create the ECR repository
         const repository = new ecr.Repository(this, 'Repository', {
             imageScanOnPush: true,
@@ -65,16 +71,12 @@ export class NovakPlayground extends Stack {
                     'ecr:GetAuthorizationToken',
                 ],
                 principals: [
-                    new iam.ArnPrincipal('arn:aws:iam::123456789012:root'),
+                    new iam.ArnPrincipal(githubActionsRole.roleArn),
                 ],
             }),
         );
 
-        // Create a role for GitHub Actions to assume
-        const githubActionsRole = new iam.Role(this, `GitHubActionsRole`, {
-            roleName: `github-actions-role`,
-            assumedBy: new iam.ServicePrincipal('github.com'),
-        });
+        
 
         // Attach policy to GitHub Actions role
         githubActionsRole.addToPolicy(
@@ -88,7 +90,7 @@ export class NovakPlayground extends Stack {
                     "ecr:BatchGetImage",
                     "ecr:GetDownloadUrlForLayer",
                 ],
-                resources: ["*"],
+                resources: [repository.repositoryArn],
             })
         );
 
