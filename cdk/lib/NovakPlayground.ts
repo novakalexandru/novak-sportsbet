@@ -137,8 +137,20 @@ export class NovakPlayground extends Stack {
             securityGroup: albSecurityGroup,
         });
 
+        // Add HTTP listener to ALB
+        const listenerHTTP = alb.addListener('Listener', {
+            port: 80,
+            open: true,
+            protocol: elbv2.ApplicationProtocol.HTTP,
+            defaultAction: elbv2.ListenerAction.redirect({
+                port: '443',
+                protocol: elbv2.ApplicationProtocol.HTTPS,
+                permanent: true,
+            }),
+        });
+        
         // Add HTTPS listener to ALB
-        const listener = alb.addListener('Listener', {
+        const listenerHTTPS = alb.addListener('Listener', {
             port: 443,
             open: true,
             protocol: elbv2.ApplicationProtocol.HTTPS,
@@ -146,7 +158,7 @@ export class NovakPlayground extends Stack {
         });
 
         // Add a target group to the listener
-        const targetGroup = listener.addTargets("ECS", {
+        const targetGroup = listenerHTTPS.addTargets("ECS", {
             port: 80,
             targets: [service.loadBalancerTarget({
                 containerName: "NovakPlaygroundContainer",
